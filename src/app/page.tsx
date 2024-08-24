@@ -1,203 +1,173 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+"use client";
+import {
+  Grid,
+  MenuItem,
+  Select,
+  SelectChangeEvent,
+  Stack,
+  Typography,
+} from "@mui/material";
+import IPlayer from "@/interfaces/player";
+import IDefense from "@/interfaces/defense";
+import { useEffect, useState } from "react";
+// import getPlayers from "@/data/getPlayers";
+import IPlayerObj from "@/interfaces/playerObj";
+import React from "react";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import getPlayers from "@/data/getPlayers";
 
-interface IDefense {
-  active?: boolean;
-  position?: string;
-  sport?: string;
-  player_id: string;
-  fantasy_positions?: string[];
-  last_name?: string;
-  first_name?: string;
-  injury_status?: string;
-  team?: string;
-}
-interface IPlayer {
-  high_school?: string;
-  age?: number;
-  college?: string;
-  first_name?: string;
-  search_first_name?: string;
-  last_name?: string;
-  pandascore_id?: string | number;
-  stats_id?: number;
-  practice_description?: string;
-  injury_body_part?: string;
-  practice_participation?: string;
-  active?: boolean;
-  height?: string;
-  opta_id?: string | number;
-  swish_id?: number;
-  metadata?: Record<string, string>;
-  years_exp?: number;
-  player_id: string;
-  competitions?: string[];
-  status?: string;
-  fantasy_data_id?: number;
-  birth_date?: string;
-  weight?: string;
-  injury_notes?: string;
-  fantasy_positions?: string[];
-  oddsjam_id?: string;
-  search_last_name?: string;
-  sportradar_id?: string;
-  search_rank?: number;
-  yahoo_id?: number;
-  rotoworld_id?: number;
-  news_updated?: number;
-  birth_state?: string;
-  hashtag?: string;
-  team_abbr?: string;
-  gsis_id?: string | number;
-  team_changed_at?: number;
-  search_full_name?: string;
-  rotowire_id?: number;
-  depth_chart_order?: number;
-  depth_chart_position?: string;
-  birth_country?: string;
-  espn_id?: number;
-  position?: string;
-  injury_status?: string;
-  team?: string;
-  full_name?: string;
-  birth_city?: string;
-  sport?: string;
-  injury_start_date?: string;
-  number?: number;
-}
+export const ELIGIBLE_POSITIONS = ["QB", "RB", "TE", "WR", "DEF"];
 
-const ELIGIBLE_POSITIONS = ["QB", "RB", "TE", "WR", "DEF"];
-// const checkPositions = (positions: string[]) => {
-//   if (positions === undefined) {
-//     return true;
-//   }
-//   let isEligible = false;
-//   positions.forEach((p) => {
-//     if (ELIGIBLE_POSITIONS.includes(p)) {
-//       isEligible = true;
-//     }
-//   });
-//   return isEligible;
-// };
+export default function Home() {
+  const players = useQuery(api.players.get);
+  const [positions, setPositions] = useState<string[]>(ELIGIBLE_POSITIONS);
+  const [playerObj, setPlayerObj] = useState<IPlayerObj>({
+    allPlayers: [],
+    qbs: [],
+    rbs: [],
+    tes: [],
+    wrs: [],
+    defs: [],
+  });
 
-const getPlayers = async () => {
-  const data = await fetch("https://api.sleeper.app/v1/players/nfl").then(
-    (res) => res.json()
-  );
-  const players = Object.keys(data)
-    .map((key) => data[key])
-    .sort((a, b) => a.search_rank - b.search_rank);
-  const allPlayers = players.filter(
-    (p) =>
-      ELIGIBLE_POSITIONS.includes(p.position) &&
-      // (p.yahoo_id > 0 || p.position === "DEF") &&
-      (p.depth_chart_order > 0 || p.position === "DEF")
-    // p.status !== "Inactive" &&
-    // p.active
-  );
-  const qbs: IPlayer[] = allPlayers
-    .filter((p) => p.position === "QB")
-    .slice(0, 60);
-  const rbs: IPlayer[] = allPlayers
-    .filter((p) => p.position === "RB")
-    .slice(0, 120);
-  const tes: IPlayer[] = allPlayers
-    .filter((p) => p.position === "TE")
-    .slice(0, 60);
-  const wrs: IPlayer[] = allPlayers
-    .filter((p) => p.position === "WR")
-    .slice(0, 120);
-  const defs: IDefense[] = allPlayers.filter((p) => p.position === "DEF");
-  return { allPlayers, qbs, rbs, tes, wrs, defs };
-};
+  // get days since Jan 1, 1970
+  // this will be used to fetch new player data if the last fetch is less than this number (fetch once per day);
+  const dayNumber = Math.floor(new Date().getTime() / (1000 * 60 * 60 * 24));
 
-export default async function Home() {
-  const { allPlayers, qbs, rbs, tes, wrs, defs } = await getPlayers();
-  console.log("players: ", allPlayers);
+  const handleChange = (event: SelectChangeEvent<string[]>) => {
+    // handle change of selected positions
+    const newPositions =
+      typeof event.target.value === "string"
+        ? [event.target.value]
+        : event.target.value;
+    setPositions(newPositions);
+  };
+
+  useEffect(() => {
+    getPlayers(players).then((res) => {
+      if (res.allPlayers !== undefined && res.allPlayers.length > 0) {
+        setPlayerObj(res);
+      }
+    });
+  }, [players]);
 
   return (
-    <main className={styles.main}>
-      <div className={styles.center}>
+    <Grid container direction="column">
+      <Grid
+        item
+        sx={{
+          background: "rgba(255, 255, 255, 0.9)",
+          minHeight: "50px",
+          position: "fixed",
+          pb: "10px",
+          pl: "5px",
+          pt: "10px",
+          top: 0,
+          width: "100%",
+        }}
+      >
+        <Select
+          id="positions-select"
+          value={positions}
+          label="Positions"
+          multiple
+          onChange={(e) => handleChange(e)}
+          variant="outlined"
+        >
+          <MenuItem value={"QB"}>QB</MenuItem>
+          <MenuItem value={"RB"}>RB</MenuItem>
+          <MenuItem value={"WR"}>WR</MenuItem>
+          <MenuItem value={"TE"}>TE</MenuItem>
+          <MenuItem value={"DEF"}>DEF</MenuItem>
+        </Select>
+      </Grid>
+      <Grid item pt={10}>
+        <Typography>Quarterbacks</Typography>
         <div>
-          {qbs.map((p) => (
-            <div
-              key={p.player_id}
-              style={{ alignItems: "center", display: "flex" }}
-            >
-              <span
-                style={{
-                  backgroundColor: "burlywood",
-                  borderRadius: 6,
-                  fontSize: "0.6rem",
-                  margin: 5,
-                  padding: 5,
-                }}
+          {positions.includes("QB") &&
+            playerObj.qbs.map((p) => (
+              <div
+                key={p.player_id}
+                style={{ alignItems: "center", display: "flex" }}
               >
-                QB
-              </span>
-              {p.full_name}&nbsp;
-              <span style={{ fontVariant: "small-caps" }}>
-                {" "}
-                - {p.team ?? "FA"}
-              </span>
-            </div>
-          ))}
+                <span
+                  style={{
+                    backgroundColor: "burlywood",
+                    borderRadius: 6,
+                    fontSize: "0.6rem",
+                    margin: 5,
+                    padding: 5,
+                  }}
+                >
+                  QB
+                </span>
+                {p.full_name}&nbsp;
+                <span style={{ fontVariant: "small-caps" }}>
+                  {" "}
+                  - {p.team ?? "FA"}
+                </span>
+              </div>
+            ))}
         </div>
-
+        <Typography>Running Backs</Typography>
         <div>
-          {rbs.map((p) => (
-            <div
-              key={p.player_id}
-              style={{ alignItems: "center", display: "flex" }}
-            >
-              <span
-                style={{
-                  backgroundColor: "aquamarine",
-                  borderRadius: 6,
-                  fontSize: "0.6rem",
-                  margin: 5,
-                  padding: 5,
-                }}
+          {positions.includes("RB") &&
+            playerObj.rbs.map((p) => (
+              <div
+                key={p.player_id}
+                style={{ alignItems: "center", display: "flex" }}
               >
-                RB
-              </span>
-              {p.full_name}&nbsp;
-              <span style={{ fontVariant: "small-caps" }}>
-                {" "}
-                - {p.team ?? "FA"}
-              </span>
-            </div>
-          ))}
+                <span
+                  style={{
+                    backgroundColor: "aquamarine",
+                    borderRadius: 6,
+                    fontSize: "0.6rem",
+                    margin: 5,
+                    padding: 5,
+                  }}
+                >
+                  RB
+                </span>
+                {p.full_name}&nbsp;
+                <span style={{ fontVariant: "small-caps" }}>
+                  {" "}
+                  - {p.team ?? "FA"}
+                </span>
+              </div>
+            ))}
         </div>
-
+        <Typography>Wide Receivers</Typography>
         <div>
-          {wrs.map((p) => (
-            <div
-              key={p.player_id}
-              style={{ alignItems: "center", display: "flex" }}
-            >
-              <span
-                style={{
-                  backgroundColor: "goldenrod",
-                  borderRadius: 6,
-                  fontSize: "0.6rem",
-                  margin: 5,
-                  padding: 5,
-                }}
+          {positions.includes("WR") &&
+            playerObj.wrs.map((p) => (
+              <div
+                key={p.player_id}
+                style={{ alignItems: "center", display: "flex" }}
               >
-                WR
-              </span>
-              {p.full_name}&nbsp;
-              <span style={{ fontVariant: "small-caps" }}>
-                {" "}
-                - {p.team ?? "FA"}
-              </span>
-            </div>
-          ))}
+                <span
+                  style={{
+                    backgroundColor: "goldenrod",
+                    borderRadius: 6,
+                    fontSize: "0.6rem",
+                    margin: 5,
+                    padding: 5,
+                  }}
+                >
+                  WR
+                </span>
+                {p.full_name}&nbsp;
+                <span style={{ fontVariant: "small-caps" }}>
+                  {" "}
+                  - {p.team ?? "FA"}
+                </span>
+              </div>
+            ))}
         </div>
+        <Typography>Tight Ends</Typography>
 
-        <div>
-          {tes.map((p) => (
+        {positions.includes("TE") &&
+          playerObj.tes.map((p) => (
             <div
               key={p.player_id}
               style={{ alignItems: "center", display: "flex" }}
@@ -220,11 +190,11 @@ export default async function Home() {
               </span>
             </div>
           ))}
-        </div>
 
-        <div>
-          {defs.length > 0 &&
-            defs.map((p) => (
+        {positions.includes("DEF") && (
+          <React.Fragment>
+            <Typography>Defense/Special Teams</Typography>
+            {playerObj.defs.map((p) => (
               <div
                 key={p.player_id}
                 style={{ alignItems: "center", display: "flex" }}
@@ -233,6 +203,7 @@ export default async function Home() {
                   style={{
                     backgroundColor: "saddlebrown",
                     borderRadius: 6,
+                    color: "#fff",
                     fontSize: "0.6rem",
                     margin: 5,
                     padding: 5,
@@ -244,8 +215,9 @@ export default async function Home() {
                 <span style={{ fontVariant: "small-caps" }}>d/st</span>
               </div>
             ))}
-        </div>
-      </div>
+          </React.Fragment>
+        )}
+      </Grid>
 
       {/* <div className={styles.grid}>
         <a
@@ -298,6 +270,6 @@ export default async function Home() {
           </p>
         </a>
       </div> */}
-    </main>
+    </Grid>
   );
 }
