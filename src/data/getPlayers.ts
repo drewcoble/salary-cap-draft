@@ -1,7 +1,7 @@
-import { ELIGIBLE_POSITIONS } from "@/app/page";
 import IDefense from "@/interfaces/defense";
 import IPlayer from "@/interfaces/player";
 import IPlayerObj from "@/interfaces/playerObj";
+import { ELIGIBLE_POSITIONS } from "@/utilities/constants";
 
 const getPlayers = async (players?: any[]) => {
   //   const data = await fetch("https://api.sleeper.app/v1/players/nfl", {

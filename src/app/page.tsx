@@ -16,8 +16,7 @@ import React from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import getPlayers from "@/data/getPlayers";
-
-export const ELIGIBLE_POSITIONS = ["QB", "RB", "TE", "WR", "DEF"];
+import { ELIGIBLE_POSITIONS } from "@/utilities/constants";
 
 export default function Home() {
   const players = useQuery(api.players.get);
